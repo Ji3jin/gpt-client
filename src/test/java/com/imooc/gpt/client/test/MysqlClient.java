@@ -1,6 +1,12 @@
 package com.imooc.gpt.client.test;
 
+import cn.hutool.json.JSONUtil;
+
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class MysqlClient {
     private static MysqlClient instance;
@@ -37,17 +43,27 @@ public class MysqlClient {
      * @throws SQLException if an error occurs while executing the query
      */
     public String executeQuery(String sql) {
-        StringBuilder result = new StringBuilder();
+        Map<String, List<String>> resultMap = new HashMap<>();
         try (Statement statement = conn.createStatement();
              ResultSet resultSet = statement.executeQuery(sql)) {
-            while (resultSet.next()) {
-                result.append(resultSet.toString());
+            ResultSetMetaData rsmd = resultSet.getMetaData();
+            int columnCount = rsmd.getColumnCount();
+            for (int i = 1; i <= columnCount; i++) {
+                String columnName = rsmd.getColumnName(i);
+                List<String> columnData = new ArrayList<>();
+                while (resultSet.next()) {
+                    String value = resultSet.getString(columnName);
+                    columnData.add(value);
+                }
+                resultMap.put(columnName, columnData);
             }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        } catch (SQLException e) {
+            throw new RuntimeException("Error executing SQL query: " + sql, e);
         }
-        return result.toString();
+
+        return JSONUtil.toJsonStr(resultMap);
     }
+
 
     public void close() {
         try {
