@@ -1,6 +1,7 @@
 package com.imooc.gpt.client.entity;
 
 
+import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -21,6 +22,8 @@ public class ChatFunction {
 
     ChatParameter parameters;
 
+    ChatCall call;
+
 
     @Data
     @AllArgsConstructor
@@ -32,6 +35,12 @@ public class ChatFunction {
         String type;
         List<String> required;
         Object properties;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public interface ChatCall {
+
+        String run(String functionCallName,JSONObject params);
     }
 
 }

@@ -18,16 +18,7 @@ public class StreamClientTest {
 
     @Before
     public void before() {
-        Proxy proxy = Proxys.http("127.0.0.1", 7890);
-
-        chatGPTStreamClient = ChatGPTStreamClient.builder()
-                .apiKey("sk-6kchadsfsfkc3aIso5ct")
-                .proxy(proxy)
-                .timeout(600)
-                .apiHost("https://api.openai.com/")
-                .build()
-                .init();
-
+        chatGPTStreamClient = LLMClientUtils.getChatGptStreamClient();
     }
     @Test
     public void chatCompletions() {

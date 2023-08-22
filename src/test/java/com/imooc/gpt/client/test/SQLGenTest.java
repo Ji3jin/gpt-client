@@ -18,16 +18,7 @@ public class SQLGenTest {
 
     @Before
     public void before() {
-        Proxy proxy = Proxys.http("127.0.0.1", 7890);
-
-        chatGPTClient = ChatGPTClient.builder()
-                .apiKey("sk-6kchn0DjDHXRadfasJqkc3aIso5ct")
-                .timeout(900)
-                .proxy(proxy)
-                .apiHost("https://api.openai.com/")
-                .build()
-                .init();
-
+        chatGPTClient = LLMClientUtils.getChatGptClient();
     }
 
     @Test

@@ -5,25 +5,16 @@ import com.imooc.gpt.client.entity.ChatCompletion;
 import com.imooc.gpt.client.entity.ChatCompletionResponse;
 import com.imooc.gpt.client.entity.Message;
 import com.imooc.gpt.client.entity.Model;
-import com.imooc.gpt.client.util.Proxys;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.net.Proxy;
 import java.util.Arrays;
 
 public class ChatGPTClientTest {
     private ChatGPTClient chatGPTClient;
     @Before
     public void before() {
-        Proxy proxy = Proxys.socks5("127.0.0.1", 7890);
-        chatGPTClient = ChatGPTClient.builder()
-                .apiKey("sk-6kchn0DjDasdsdfdqOJqkc3aIso5ct")
-                .timeout(900)
-                .proxy(proxy)
-                .apiHost("https://api.openai.com/")
-                .build()
-                .init();
+        chatGPTClient = LLMClientUtils.getChatGptClient();
 
     }
     @Test

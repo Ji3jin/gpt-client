@@ -2,12 +2,10 @@ package com.imooc.gpt.client.test;
 
 import com.imooc.gpt.client.ChatGPTClient;
 import com.imooc.gpt.client.entity.*;
-import com.imooc.gpt.client.util.Proxys;
 import com.imooc.gpt.client.util.TokensUtil;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.net.Proxy;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -17,14 +15,7 @@ public class ChatReviewTest {
     private ChatGPTClient chatGPTClient;
     @Before
     public void before() {
-        Proxy proxy = Proxys.socks5("127.0.0.1", 7890);
-        chatGPTClient = ChatGPTClient.builder()
-                .apiKey("sk-adfasdfsdfsdf")
-                .timeout(900)
-                .proxy(proxy)
-                .apiHost("https://api.openai.com/")
-                .build()
-                .init();
+        chatGPTClient = LLMClientUtils.getChatGptClient();
 
     }
     @Test
