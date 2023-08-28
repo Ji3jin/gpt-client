@@ -42,7 +42,7 @@ public class MysqlClient {
      * @return a string representing the result of the query
      * @throws SQLException if an error occurs while executing the query
      */
-    public String executeQuery(String sql) {
+    public String executeQuery(String sql) throws SQLException {
         Map<String, List<String>> resultMap = new HashMap<>();
         try (Statement statement = conn.createStatement();
              ResultSet resultSet = statement.executeQuery(sql)) {
@@ -58,7 +58,7 @@ public class MysqlClient {
                 resultMap.put(columnName, columnData);
             }
         } catch (SQLException e) {
-            throw new RuntimeException("Error executing SQL query: " + sql, e);
+            throw e;
         }
 
         return JSONUtil.toJsonStr(resultMap);

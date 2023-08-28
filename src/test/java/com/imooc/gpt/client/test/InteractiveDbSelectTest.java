@@ -4,7 +4,10 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.imooc.gpt.client.ChatGPTClient;
 import com.imooc.gpt.client.entity.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -12,35 +15,36 @@ import java.util.Scanner;
 
 public class InteractiveDbSelectTest {
 
-    private static ChatGPTClient chatGPTClient;
-    private static MysqlClient mysqlClient = MysqlClient.getInstance();
+    private static Logger logger = LoggerFactory.getLogger(InteractiveDbSelectTest.class);
 
-    static {
-        chatGPTClient = LLMClientUtils.getChatGptClient();
-    }
+    private static ChatGPTClient chatGPTClient = LLMClientUtils.getChatGptClient();
+    private static MysqlClient mysqlClient = MysqlClient.getInstance();
+    private static List<ChatFunction> chatFunctions = getChatFunctions();
 
     /**
      * 启动一个命令行输入程序，根据输入返回特定结果
      */
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
-        System.out.println("欢迎来到会话程序！输入'quit'来结束会话。");
-
+        logger.info("欢迎来到会话程序！输入'quit'来结束会话。");
+        // Call ChatGPT with the given message and chat functions
+        callChatGPT(Arrays.asList(
+                Message.ofSystem("You are primarily responsible for SQL recommendation and execution based on user input. However, you must follow the following rules:" +
+                        "1. Recommended SQL must undergo metadata retrieval first." +
+                        "2. Recommended SQL must include the database name." +
+                        "3. Recommended SQL must be for existing tables." +
+                        "Please wait patiently for specific user input. Then, follow the above rules for SQL recommendation and execution!")
+        ), null);
         MysqlClient mysqlClient = MysqlClient.getInstance();
         try {
             mysqlClient.open();
-
-            List<ChatFunction> chatFunctions = getChatFunctions();
-
             while (true) {
                 System.out.print("你: ");
                 String userInput = scanner.nextLine();
-
                 if (userInput.equalsIgnoreCase("quit")) {
-                    System.out.println("会话结束。");
+                    logger.info("会话结束。");
                     break;
                 }
-
                 callChatGPT(Arrays.asList(Message.of(userInput)), chatFunctions);
             }
         } catch (Exception e) {
@@ -92,7 +96,7 @@ public class InteractiveDbSelectTest {
                     if (null == function.getCall()) {
                         // 没有回调方法的function，是LLM针对上次内容的分析回复，不再调用LLM进行会话
                     } else {
-                        System.out.println(choice);
+                        logger.info(choice.toString());
                         // 具有回调方法的function，调用回调方法后再将结果输入给LLM进行分析
                         String callResult = function.getCall().run(functionCallName, jsonObject);
                         if (null != callResult) {
@@ -104,7 +108,7 @@ public class InteractiveDbSelectTest {
             }
         } else {
             // 非回调方法，直接输出内容
-//            System.out.println(res.getContent());
+            logger.info(res.getContent());
         }
     }
 
@@ -114,7 +118,7 @@ public class InteractiveDbSelectTest {
         @Override
         public String run(String functionCallName, JSONObject params) {
             if ("analysis".equalsIgnoreCase(functionCallName)) {
-                System.out.println(params.getString("analysis"));
+                logger.info(params.getString("analysis"));
             }
             return null;
         }
@@ -144,7 +148,7 @@ public class InteractiveDbSelectTest {
                     rs.add(ms);
                 }
             } else {
-                Message ms = Message.of("回复：请问还有什么能够帮助您的？");
+                Message ms = Message.ofSystem("根据内容，进行分析后输出！");
                 ms.setName("analysis");
                 rs.add(ms);
             }
@@ -159,6 +163,8 @@ public class InteractiveDbSelectTest {
         public String run(String functionCallName, JSONObject params) {
             if (functionCallName.equalsIgnoreCase("executeSQL")) {
                 return executeSQL(params);
+            } else if (functionCallName.equalsIgnoreCase("getMetadata")) {
+                return executeSQL(params);
             }
             return null;
         }
@@ -166,7 +172,8 @@ public class InteractiveDbSelectTest {
         public String executeSQL(JSONObject params) {
             try {
                 return mysqlClient.executeQuery(params.getString("sql"));
-            } catch (RuntimeException re) {
+            } catch (SQLException re) {
+                logger.error("Error code: {} ", re.getErrorCode(), re);
                 return "当前SQL执行错误，可能情况如下：" +
                         "1、没有选择库信息" +
                         "2、表名不正确" +
@@ -186,12 +193,12 @@ public class InteractiveDbSelectTest {
         }
 
         private static ChatFunction getMetadataQueryFunction() {
-            return ChatFunction.builder().name("executeSQL").description("查询元信息")
+            return ChatFunction.builder().name("getMetadata").description("查询元信息")
                     .parameters(ChatFunction.ChatParameter.builder().type("object")
                             .required(Arrays.asList("sql")).properties(JSON.parseObject("{\n" +
                                     "          \"sql\": {\n" +
                                     "            \"type\": \"string\",\n" +
-                                    "            \"description\": \"分析我提交给你的内容，然后尝试先帮我列出库信息，再列出库下所有的表信息!\"\n" +
+                                    "            \"description\": \"列出所有的库信息，同时列出所有库下的表信息\"\n" +
                                     "          }\n" +
                                     "        }")).build()).call(new DBAdapter()).build();
         }
